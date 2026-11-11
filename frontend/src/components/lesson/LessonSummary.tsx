@@ -125,7 +125,13 @@ function CompleteScreen({ result, mode, sound, animations }: {
     <>
       <Mascot mood="cheer" size={180} />
       <h1 className="text-3xl font-black text-gold-dark sm:text-4xl">
-        {mode === "heart_practice" ? "Practice complete!" : result.mistakes === 0 ? "Perfect Lesson!" : "Lesson Complete!"}
+        {mode === "heart_practice"
+          ? "Practice complete!"
+          : mode === "legendary"
+            ? "Legendary!"
+            : result.mistakes === 0
+              ? "Perfect Lesson!"
+              : "Lesson Complete!"}
       </h1>
       {result.heart_gained && (
         <p className="flex items-center gap-2 text-lg font-extrabold text-red">

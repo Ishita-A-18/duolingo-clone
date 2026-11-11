@@ -1,5 +1,6 @@
 "use client";
 
+import { formatDuration } from "@/lib/format";
 import type { AnswerResult } from "@/lib/types";
 import { CheckIcon, CloseIcon, FlagOutlineIcon, GemChip, HeartIcon, MountainIcon } from "../icons";
 import { Mascot } from "../Mascot";
@@ -8,12 +9,14 @@ import { Modal, ProgressBar } from "../ui";
 /** Combo length at which the progress bar turns gold, like the original's streak-of-answers flourish. */
 export const HOT_COMBO = 5;
 
-export function LessonHeader({ progress, hearts, heartsAtRisk, combo, onQuit }: {
+export function LessonHeader({ progress, hearts, heartsAtRisk, combo, onQuit, challenge }: {
   progress: number;
   hearts: number;
   heartsAtRisk: boolean;
   combo: number;
   onQuit: () => void;
+  /** Legendary challenge: countdown + mistakes left replace the hearts. */
+  challenge?: { secondsLeft: number; mistakesLeft: number };
 }) {
   const hot = combo >= HOT_COMBO;
   // The "N IN A ROW" label rides above the end of the filled bar.
@@ -36,7 +39,19 @@ export function LessonHeader({ progress, hearts, heartsAtRisk, combo, onQuit }: 
         )}
       </div>
       <div className="flex items-center gap-2 text-lg font-extrabold">
-        {heartsAtRisk ? (
+        {challenge ? (
+          <>
+            <span
+              className={`rounded-xl px-2.5 py-1 tabular-nums ${challenge.secondsLeft <= 30 ? "bg-red-light text-red" : "bg-gold-light text-gold-dark"}`}
+              aria-label="Time left"
+            >
+              ⏱ {formatDuration(challenge.secondsLeft)}
+            </span>
+            <span className="text-sm font-extrabold uppercase text-ink-muted" aria-label="Mistakes left">
+              ✖ {challenge.mistakesLeft}
+            </span>
+          </>
+        ) : heartsAtRisk ? (
           <>
             <HeartIcon size={30} muted={hearts === 0} />
             <span className="text-red">{hearts}</span>
@@ -209,6 +224,27 @@ export function Encouragement({ message, mood = "happy" }: { message: string; mo
           {message}
         </div>
       </div>
+    </div>
+  );
+}
+
+/** Legendary challenge lost: out of time or out of allowed mistakes. */
+export function ChallengeFailed({ reason, onRetry, onExit }: { reason: "time" | "mistakes"; onRetry: () => void; onExit: () => void }) {
+  return (
+    <div className="flex min-h-dvh flex-col">
+      <div className="flex flex-1 animate-pop flex-col items-center justify-center gap-5 px-4 text-center">
+        <Mascot mood="sad" size={170} />
+        <h1 className="text-3xl font-extrabold text-ink-strong">Challenge failed</h1>
+        <p className="max-w-sm text-lg font-semibold text-ink-muted">
+          {reason === "time" ? "Time ran out before you finished." : "That was one mistake too many."} Practice a little more and try again!
+        </p>
+      </div>
+      <footer className="border-t-2 border-line">
+        <div className="mx-auto flex min-h-[140px] max-w-[1000px] flex-col-reverse justify-center gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-10">
+          <button className="btn btn-outline w-full sm:w-[180px]" onClick={onExit}>Back to path</button>
+          <button className="btn btn-gold w-full sm:w-[180px]" onClick={onRetry} autoFocus>Try again</button>
+        </div>
+      </footer>
     </div>
   );
 }

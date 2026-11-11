@@ -11,7 +11,7 @@ import { CrownIcon, RetryIcon, SparkleIcon, TrophyIcon } from "../icons";
 import { useToast } from "../Toasts";
 import { ErrorState, Spinner } from "../ui";
 import { EXERCISES } from "./exercises";
-import { Encouragement, FeedbackFooter, HOT_COMBO, LessonHeader, OutOfHeartsModal, QuitModal } from "./LessonChrome";
+import { ChallengeFailed, Encouragement, FeedbackFooter, HOT_COMBO, LessonHeader, OutOfHeartsModal, QuitModal } from "./LessonChrome";
 import { LessonSummary } from "./LessonSummary";
 import { useLessonEngine } from "./useLessonEngine";
 
@@ -98,6 +98,10 @@ function ActiveLesson({ session, startingHearts }: { session: LessonSession; sta
   const [heartsOpen, setHeartsOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<Completion | null>(null);
+  // Legendary challenge: countdown and failure state (the server enforces both too).
+  const timeLimit = session.time_limit_seconds;
+  const [secondsLeft, setSecondsLeft] = useState(timeLimit ?? 0);
+  const [failed, setFailed] = useState<"time" | "mistakes" | null>(null);
   // Mid-lesson encouragement screens, each shown at most once per lesson.
   const [encourage, setEncourage] = useState<{ message: string; mood: "happy" | "cheer" } | null>(null);
   const shownRef = useRef(new Set<string>());
@@ -105,6 +109,20 @@ function ActiveLesson({ session, startingHearts }: { session: LessonSession; sta
   const toast = useToast();
   const { data: me } = useMe();
   const sound = me?.sound_enabled ?? true;
+
+  useEffect(() => {
+    if (!timeLimit || result || failed) return;
+    const startedAt = Date.now();
+    const id = setInterval(() => {
+      const left = Math.max(0, timeLimit - Math.floor((Date.now() - startedAt) / 1000));
+      setSecondsLeft(left);
+      if (left === 0) {
+        clearInterval(id);
+        setFailed("time");
+      }
+    }, 250);
+    return () => clearInterval(id);
+  }, [timeLimit, result, failed]);
 
   const current = s.queue[0];
   const Exercise = current ? EXERCISES[current.type] : null;
@@ -119,7 +137,8 @@ function ActiveLesson({ session, startingHearts }: { session: LessonSession; sta
         dispatch({ type: "graded", result: res });
       } catch (e) {
         dispatch({ type: "check_failed" });
-        if (e instanceof ApiError && e.code === "out_of_hearts") setHeartsOpen(true);
+        if (e instanceof ApiError && e.code === "time_up") setFailed("time");
+        else if (e instanceof ApiError && e.code === "out_of_hearts") setHeartsOpen(true);
         else toast({ title: e instanceof Error ? e.message : "Couldn't check that", tone: "error" });
       }
     },
@@ -133,7 +152,8 @@ function ActiveLesson({ session, startingHearts }: { session: LessonSession; sta
       setResult(done);
       refreshLearnerData();
     } catch (e) {
-      toast({ title: e instanceof Error ? e.message : "Couldn't finish the lesson", tone: "error" });
+      if (e instanceof ApiError && e.code === "time_up") setFailed("time");
+      else toast({ title: e instanceof Error ? e.message : "Couldn't finish the lesson", tone: "error" });
     } finally {
       setBusy(false);
     }
@@ -141,6 +161,10 @@ function ActiveLesson({ session, startingHearts }: { session: LessonSession; sta
 
   const next = useCallback(() => {
     if (!s.feedback) return;
+    if (s.feedback.challenge_failed) {
+      setFailed("mistakes");
+      return;
+    }
     if (!s.feedback.correct && session.hearts_at_risk && s.hearts <= 0) {
       setHeartsOpen(true);
       return;
@@ -183,7 +207,7 @@ function ActiveLesson({ session, startingHearts }: { session: LessonSession; sta
   // Enter = Check / Continue, like the original.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== "Enter" || quitOpen || heartsOpen || result || busy) return;
+      if (e.key !== "Enter" || quitOpen || heartsOpen || failed || result || busy) return;
       e.preventDefault();
       if (encourage) setEncourage(null);
       else if (s.phase === "feedback") next();
@@ -191,7 +215,11 @@ function ActiveLesson({ session, startingHearts }: { session: LessonSession; sta
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [s.phase, s.draft, next, submit, quitOpen, heartsOpen, result, busy, encourage]);
+  }, [s.phase, s.draft, next, submit, quitOpen, heartsOpen, failed, result, busy, encourage]);
+
+  if (failed) {
+    return <ChallengeFailed reason={failed} onRetry={() => window.location.reload()} onExit={() => router.push("/learn")} />;
+  }
 
   if (result) {
     return (
@@ -201,7 +229,9 @@ function ActiveLesson({ session, startingHearts }: { session: LessonSession; sta
         me={me}
         log={s.log}
         onDone={() => {
-          if (result.unit_completed_now)
+          if (result.legendary_now)
+            toast({ title: `${session.skill_title} is Legendary!`, body: "This skill is now gold on your path.", icon: <TrophyIcon size={30} />, tone: "gold" });
+          else if (result.unit_completed_now)
             toast({ title: "Unit complete!", body: "You unlocked the next unit.", icon: <TrophyIcon size={30} />, tone: "gold" });
           else if (result.skill_completed_now)
             toast({ title: `${session.skill_title} complete!`, body: "You earned a crown.", icon: <CrownIcon size={30} />, tone: "gold" });
@@ -219,6 +249,11 @@ function ActiveLesson({ session, startingHearts }: { session: LessonSession; sta
         heartsAtRisk={session.hearts_at_risk}
         combo={s.combo}
         onQuit={() => setQuitOpen(true)}
+        challenge={
+          timeLimit
+            ? { secondsLeft, mistakesLeft: Math.max(0, (session.mistakes_allowed ?? 0) - s.log.filter((l) => !l.correct).length) }
+            : undefined
+        }
       />
 
       {encourage ? (

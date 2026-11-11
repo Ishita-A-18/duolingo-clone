@@ -21,7 +21,7 @@ Design rationale for every non-obvious choice: **[docs/DESIGN_DECISIONS.md](docs
 | **Backend** | Python 3.11, FastAPI | Required stack; typed request/response models, auto docs at `/docs` |
 | | SQLAlchemy 2.0 (typed ORM), Pydantic v2 | Schema as code; validated API contract |
 | **Database** | SQLite | Required; foreign keys enforced per connection |
-| **Tests** | pytest + FastAPI TestClient | 34 tests: unit and end-to-end API |
+| **Tests** | pytest + FastAPI TestClient | 40 tests: unit and end-to-end API |
 
 ---
 
@@ -46,7 +46,7 @@ npm run dev
 
 The database is created and **seeded automatically on first start**, so the app is usable right away. To wipe and reseed: `python -m app.seed.run --reset`, or use **Settings → Developer tools → Reset demo data**.
 
-Run the tests: `cd backend && pytest` (34 tests).
+Run the tests: `cd backend && pytest` (40 tests).
 
 ### Trying the time-based features
 Streaks and heart regeneration depend on the calendar. Open **More (Settings) → Developer tools**:
@@ -78,9 +78,10 @@ Streaks and heart regeneration depend on the calendar. Open **More (Settings) �
 - Real leaderboard across seeded users (same query ranks everyone)
 - Responsive layout: phone (top bar + bottom tabs), tablet (icon sidebar), desktop (sidebar + right rail)
 - Dark mode
+- **Legendary challenge** (timed): on any completed skill, pay 100 gems for 10 questions in 3 minutes with at most 2 mistakes; win +40 XP and the skill turns gold. Timer and mistake limit are enforced by the server.
 
 ### Bonus (planned)
-Timed "legendary" challenge.
+None: all bonus items are implemented.
 
 ---
 
@@ -173,9 +174,9 @@ erDiagram
 | `exercise_options` | Choices / tiles / pairs | `text`, `match_text` (pairs), `image` (emoji), `is_correct` |
 | `accepted_answers` | Alternative correct translations | `exercise_id`, `text` |
 | `users` | Learner + hot counters + preferences | `total_xp`, `gems`, `hearts`, `hearts_updated_at`, `current_streak`, `longest_streak`, `last_streak_date`, `daily_goal_xp`, `timezone`, `is_bot`, `sound_enabled`, `animations_enabled`, `motivational_messages`, `listening_enabled` |
-| `skill_progress` | Per-user skill progress | `lessons_completed`, `crowns`, `completed_at` · UNIQUE(user_id, skill_id) |
+| `skill_progress` | Per-user skill progress | `lessons_completed`, `crowns`, `completed_at`, `legendary_at` · UNIQUE(user_id, skill_id) |
 | `daily_activity` | XP per local day | `date`, `xp_earned`, `lessons_completed` · UNIQUE(user_id, date) |
-| `lesson_sessions` | One attempt | uuid `id`, `mode` (lesson/review/heart_practice), `status`, counters, `xp_earned` |
+| `lesson_sessions` | One attempt | uuid `id`, `mode` (lesson/review/heart_practice/legendary), `status` (active/completed/abandoned/failed), counters, `xp_earned`, `deadline` (timed sessions) |
 | `session_exercises` | Exercises dealt into a session | `position` · UNIQUE(session_id, position) |
 | `session_answers` | Every graded answer | `answer` (JSON), `is_correct`, `answered_at` |
 | `achievements` | Tier definitions | `metric`, `threshold`, `title`, `icon` |
@@ -201,8 +202,8 @@ Errors always look like `{"error": {"code": "out_of_hearts", "message": "..."}}`
 | GET | `/me/profile` | Stats, league rank, top-3 finishes, achievement families |
 | GET | `/path` | Units → skills with `state`, `lessons_completed`, `crowns`, plus each unit's `chest` state |
 | POST | `/path/units/{id}/chest` | Open a unit's treasure chest → `{gems_earned, gems}` (`403 chest_locked`, `409 chest_claimed`) |
-| POST | `/sessions` | `{mode:"skill", skill_id}` or `{mode:"heart_practice"}` → session + exercises (`403 skill_locked`, `409 out_of_hearts`) |
-| POST | `/sessions/{id}/answers` | `{exercise_id, option_id \| option_ids \| text \| skipped}` → `{correct, solution, note, hearts}` |
+| POST | `/sessions` | `{mode:"skill", skill_id}`, `{mode:"heart_practice"}` or `{mode:"legendary", skill_id}` → session + exercises (`403 skill_locked / skill_not_completed`, `409 out_of_hearts / not_enough_gems`) |
+| POST | `/sessions/{id}/answers` | `{exercise_id, option_id \| option_ids \| text \| skipped}` → `{correct, solution, note, hearts, challenge_failed}` (`409 time_up` for late legendary answers) |
 | POST | `/sessions/{id}/complete` | XP, accuracy, streak change, daily goal (+ `gems_earned` from the daily-goal chest), crowns, unlocked achievements (`409 session_incomplete`) |
 | POST | `/sessions/{id}/abandon` | Quit a session |
 | GET | `/leaderboard` | This week's league: `unlocked`, `lessons_to_unlock`, standings (empty while locked) |
@@ -221,6 +222,7 @@ Errors always look like `{"error": {"code": "out_of_hearts", "message": "..."}}`
 | Streak | +1 on the first completed lesson of a local day; resets after a missed day |
 | Crowns | level 1 on finishing a skill, +1 per review, max 5 |
 | League | unlocks after 10 completed lessons · weekly XP (Mon–Sun) · top 7 promotion zone · locked learners don't appear in others' standings |
+| Legendary | 100 gems to enter · 10 questions · 3 minutes · max 2 mistakes · +40 XP, skill turns gold and crowns go to 5 |
 | Gems | unit chest +15 (once per unit, after its first 2 skills) · daily goal +5 (once per day) · heart refill −350 |
 
 ---

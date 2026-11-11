@@ -27,6 +27,7 @@ class SkillNode:
     lessons_completed: int
     total_lessons: int
     crowns: int
+    legendary: bool = False
 
 
 @dataclass
@@ -72,7 +73,12 @@ def build_path(db: Session, user: User) -> tuple[Course, list[UnitNode]]:
                 state, found_active = NodeState.ACTIVE, True
             else:
                 state = NodeState.LOCKED
-            nodes.append(SkillNode(skill, state, min(done, total), total, p.crowns if p else 0))
+            nodes.append(
+                SkillNode(
+                    skill, state, min(done, total), total, p.crowns if p else 0,
+                    legendary=bool(p and p.legendary_at),
+                )
+            )
 
         states = {n.state for n in nodes}
         if states == {NodeState.COMPLETED}:

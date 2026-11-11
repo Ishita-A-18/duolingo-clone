@@ -89,6 +89,8 @@ class SkillProgress(Base):
     # Crowns: +1 each time the skill is finished (first completion) and each review.
     crowns: Mapped[int] = mapped_column(Integer, default=0)
     completed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    # Set when the learner passes the skill's Legendary challenge (gold node on the path).
+    legendary_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
     user: Mapped[User] = relationship(back_populates="skill_progress")
 
@@ -97,12 +99,14 @@ class SessionMode(str, enum.Enum):
     LESSON = "lesson"  # next lesson of an active skill: advances progress
     REVIEW = "review"  # replay a completed skill
     HEART_PRACTICE = "heart_practice"  # no hearts at risk; earns a heart back
+    LEGENDARY = "legendary"  # timed challenge on a completed skill; limited mistakes
 
 
 class SessionStatus(str, enum.Enum):
     ACTIVE = "active"
     COMPLETED = "completed"
     ABANDONED = "abandoned"
+    FAILED = "failed"  # legendary challenge lost (time ran out or too many mistakes)
 
 
 class LessonSession(Base):
@@ -125,6 +129,8 @@ class LessonSession(Base):
     )
     started_at: Mapped[datetime] = mapped_column(DateTime)
     completed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    # Timed sessions (legendary): answers after this moment are rejected server-side.
+    deadline: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     correct_count: Mapped[int] = mapped_column(Integer, default=0)
     mistake_count: Mapped[int] = mapped_column(Integer, default=0)
     hearts_lost: Mapped[int] = mapped_column(Integer, default=0)

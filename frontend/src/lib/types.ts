@@ -59,6 +59,8 @@ export interface Skill {
   total_lessons: number;
   crowns: number;
   max_crowns: number;
+  /** Passed the skill's Legendary challenge (gold node). */
+  legendary: boolean;
 }
 
 export interface Chest {
@@ -80,10 +82,19 @@ export interface Unit {
   chest: Chest;
 }
 
+export interface LegendaryRules {
+  gem_cost: number;
+  xp: number;
+  questions: number;
+  seconds: number;
+  mistakes_allowed: number;
+}
+
 export interface LearningPath {
   course_id: number;
   course_title: string;
   units: Unit[];
+  legendary: LegendaryRules;
 }
 
 export interface Option {
@@ -113,12 +124,15 @@ export interface Exercise {
 
 export interface LessonSession {
   id: string;
-  mode: "lesson" | "review" | "heart_practice";
+  mode: "lesson" | "review" | "heart_practice" | "legendary";
   skill_id: number | null;
   skill_title: string | null;
   lesson_position: number | null;
   total_lessons: number | null;
   hearts_at_risk: boolean;
+  /** Timed sessions (legendary) only. */
+  time_limit_seconds: number | null;
+  mistakes_allowed: number | null;
   exercises: Exercise[];
 }
 
@@ -136,6 +150,8 @@ export interface AnswerResult {
   note: string | null;
   hearts: number;
   next_heart_at: string | null;
+  /** Legendary: this mistake used up the allowance; the session is over. */
+  challenge_failed: boolean;
 }
 
 export interface UnlockedAchievement {
@@ -160,6 +176,7 @@ export interface Completion {
   crowns: number;
   unit_completed_now: boolean;
   heart_gained: boolean;
+  legendary_now: boolean;
   /** Gems from the daily-goal chest (0 if none). */
   gems_earned: number;
   gems: number;

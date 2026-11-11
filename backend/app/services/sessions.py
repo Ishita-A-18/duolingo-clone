@@ -11,7 +11,7 @@ import json
 import random
 import uuid
 from dataclasses import asdict, dataclass, field
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
@@ -39,6 +39,8 @@ from app.services.grading import AnswerInput, GradeResult, grade
 
 MAX_CROWNS = 5
 PRACTICE_SIZE = 8
+# Network slack for the last answer of a timed challenge.
+DEADLINE_GRACE = timedelta(seconds=3)
 
 
 # ------------------------------------------------------------------ start
@@ -98,14 +100,38 @@ def start_heart_practice(db: Session, user: User, clock: Clock) -> LessonSession
     return _create(db, user, SessionMode.HEART_PRACTICE, None, picked, now)
 
 
+def start_legendary(db: Session, user: User, skill_id: int, clock: Clock) -> LessonSession:
+    """Timed challenge over a completed skill. Costs gems up front, like the original.
+
+    The deadline and the mistake limit are enforced here on the server, so the
+    challenge can't be won by tampering with the client-side timer.
+    """
+    now = clock.now()
+    _, units = path.build_path(db, user)
+    node = path.find_node(units, skill_id)
+    if node.state != path.NodeState.COMPLETED:
+        raise ForbiddenError("Finish this skill to unlock its Legendary challenge.", code="skill_not_completed")
+    if user.gems < settings.legendary_gem_cost:
+        raise ConflictError("Not enough gems.", code="not_enough_gems")
+
+    lesson_ids = [lesson.id for lesson in node.skill.lessons]
+    pool = list(db.scalars(_exercise_query().where(Exercise.lesson_id.in_(lesson_ids))))
+    picked = random.sample(pool, min(settings.legendary_questions, len(pool)))
+    user.gems -= settings.legendary_gem_cost
+    deadline = now + timedelta(seconds=settings.legendary_seconds)
+    # lesson_id points at the skill's first lesson so completion can find the skill.
+    return _create(db, user, SessionMode.LEGENDARY, lesson_ids[0], picked, now, deadline)
+
+
 def _create(
     db: Session, user: User, mode: SessionMode, lesson_id: int | None,
-    exercises: list[Exercise], now: datetime,
+    exercises: list[Exercise], now: datetime, deadline: datetime | None = None,
 ) -> LessonSession:
     if not exercises:
         raise DomainError("This lesson has no exercises yet.", code="empty_lesson")
     session = LessonSession(
-        id=str(uuid.uuid4()), user_id=user.id, lesson_id=lesson_id, mode=mode, started_at=now
+        id=str(uuid.uuid4()), user_id=user.id, lesson_id=lesson_id, mode=mode, started_at=now,
+        deadline=deadline,
     )
     session.items = [SessionExercise(exercise_id=e.id, position=i) for i, e in enumerate(exercises)]
     db.add(session)
@@ -136,11 +162,21 @@ def _active(db: Session, user: User, session_id: str) -> LessonSession:
     return s
 
 
+def _fail_if_late(db: Session, s: LessonSession, now: datetime) -> None:
+    """Timed sessions: past the deadline the challenge is lost."""
+    if s.deadline is not None and now > s.deadline + DEADLINE_GRACE:
+        s.status = SessionStatus.FAILED
+        s.completed_at = now
+        db.commit()
+        raise ConflictError("Time's up!", code="time_up")
+
+
 @dataclass
 class AnswerOutcome:
     result: GradeResult
     hearts: int
     next_heart_at: datetime | None
+    challenge_failed: bool = False  # legendary: this mistake used up the allowance
 
 
 def answer(
@@ -150,7 +186,8 @@ def answer(
     s = _active(db, user, session_id)
     if exercise_id not in {i.exercise_id for i in s.items}:
         raise NotFoundError("That exercise isn't part of this session.")
-    hearts_at_risk = s.mode != SessionMode.HEART_PRACTICE
+    _fail_if_late(db, s, now)
+    hearts_at_risk = s.mode in (SessionMode.LESSON, SessionMode.REVIEW)
 
     hearts.sync_hearts(user, now)
     if hearts_at_risk and user.hearts <= 0:
@@ -172,8 +209,12 @@ def answer(
         if hearts_at_risk:
             hearts.lose_heart(user, now)
             s.hearts_lost += 1
+    failed = s.mode == SessionMode.LEGENDARY and s.mistake_count > settings.legendary_mistakes_allowed
+    if failed:
+        s.status = SessionStatus.FAILED
+        s.completed_at = now
     db.commit()
-    return AnswerOutcome(result, user.hearts, hearts.next_heart_at(user))
+    return AnswerOutcome(result, user.hearts, hearts.next_heart_at(user), challenge_failed=failed)
 
 
 def abandon(db: Session, user: User, session_id: str) -> None:
@@ -201,6 +242,7 @@ class Completion:
     unit_completed_now: bool = False
     heart_gained: bool = False
     gems_earned: int = 0  # daily-goal chest
+    legendary_now: bool = False  # passed a Legendary challenge
     achievements_unlocked: list[Achievement] = field(default_factory=list)
 
 
@@ -208,6 +250,7 @@ def complete(db: Session, user: User, session_id: str, clock: Clock) -> Completi
     now = clock.now()
     today = clock.today(user.timezone)
     s = _active(db, user, session_id)
+    _fail_if_late(db, s, now)
 
     # Every dealt exercise must have been answered correctly at least once.
     first_try: dict[int, bool] = {}
@@ -227,6 +270,8 @@ def complete(db: Session, user: User, session_id: str, clock: Clock) -> Completi
         xp = s.lesson.xp_reward + bonus
     elif s.mode == SessionMode.REVIEW:
         xp = settings.review_xp + bonus
+    elif s.mode == SessionMode.LEGENDARY:
+        xp = settings.legendary_xp
     else:
         xp = settings.heart_practice_xp
 
@@ -295,5 +340,9 @@ def _advance_skill(
             )
     elif mode == SessionMode.REVIEW:
         sp.crowns = min(MAX_CROWNS, sp.crowns + 1)
+    elif mode == SessionMode.LEGENDARY:
+        sp.legendary_at = sp.legendary_at or now
+        sp.crowns = MAX_CROWNS
+        out.legendary_now = True
     out.skill_id = skill.id
     out.crowns = sp.crowns

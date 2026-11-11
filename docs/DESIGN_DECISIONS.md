@@ -227,3 +227,18 @@ The profile's 4th card matches the original: weeks you finished in 1st–3rd pla
 - **Trade-off:** past weeks are ranked with *today's* league eligibility (bots + learners who have unlocked leagues), not eligibility as it was that week.
 - **Seed data:** competitors now have two past weeks of XP, so history is a real competition. The seeded learner has 0 finishes.
 - Crowns stay on the path (required per skill) and appear in the profile's summary line.
+
+### D40. Legendary challenge: a timed mode enforced by the server
+The last bonus item, modelled on the original's Legendary level. It's offered on any **completed** skill:
+- **Price:** 100 gems, charged when the session starts. An intro screen shows the rules and price first, so gems are never spent by accident.
+- **Format:** 10 questions sampled from all of the skill's lessons, a 3-minute limit, and at most 2 mistakes. Hearts aren't used.
+- **Win:** +40 XP, `skill_progress.legendary_at` is set (the node turns gold with a trophy), and crowns go to 5.
+- **Lose:** time runs out or a 3rd mistake; the session ends as `failed`.
+
+How it's built:
+- **Enforced server-side, like the rest of grading.** The session stores a `deadline`. `answer` and `complete` reject anything after it (plus a 3-second network grace) with `409 time_up` and mark the session `failed`. The mistake that exceeds the allowance returns `challenge_failed: true` and closes the session. The browser's countdown is only a display; editing it can't extend the time.
+- **No new tables:** a new session mode (`legendary`), a new status (`failed`), and two nullable columns (`lesson_sessions.deadline`, `skill_progress.legendary_at`). The session's `lesson_id` points at the skill's first lesson so completion finds the skill the same way as other modes.
+- **Rules come from config** (`legendary_*` settings) and are sent with `/path`, so the intro screen and the server can't disagree.
+- **Tests (`test_legendary.py`):** only completed skills qualify, gems are charged, the session is timed, a win sets the gold state, the 3rd mistake fails it, late answers are rejected, and not having enough gems is refused.
+
+Also fixed while testing: in dark mode, toasts used translucent tints as their only background and were hard to read over the page. The tint now sits on a solid surface.

@@ -13,11 +13,13 @@ interface Toast {
 
 const ToastContext = createContext<(t: Omit<Toast, "id" | "tone"> & { tone?: Tone }) => void>(() => {});
 
-const TONES: Record<Tone, string> = {
-  success: "border-green bg-green-light text-green-dark",
-  info: "border-blue-border bg-blue-light text-blue-dark",
-  error: "border-red bg-red-light text-red-dark",
-  gold: "border-gold bg-gold-light text-[#b57f00]",
+// Border/text colors, plus a tint layered over a solid surface. In dark mode
+// the *-light tints are translucent, so they must never be the only background.
+const TONES: Record<Tone, { frame: string; tint: string }> = {
+  success: { frame: "border-green text-green-dark", tint: "bg-green-light" },
+  info: { frame: "border-blue-border text-blue-dark", tint: "bg-blue-light" },
+  error: { frame: "border-red text-red-dark", tint: "bg-red-light" },
+  gold: { frame: "border-gold text-gold-dark", tint: "bg-gold-light" },
 };
 
 /** Lightweight toast queue: `useToast()({ title, body, icon })`. */
@@ -37,10 +39,11 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         {toasts.map((t) => (
           <div
             key={t.id}
-            className={`pointer-events-auto flex w-full max-w-sm animate-pop items-center gap-3 rounded-2xl border-2 border-b-4 px-4 py-3 shadow-lg ${TONES[t.tone]}`}
+            className={`pointer-events-auto relative flex w-full max-w-sm animate-pop items-center gap-3 overflow-hidden rounded-2xl border-2 border-b-4 bg-bg px-4 py-3 shadow-lg ${TONES[t.tone].frame}`}
           >
-            {t.icon && <div className="shrink-0">{t.icon}</div>}
-            <div>
+            <span aria-hidden className={`absolute inset-0 ${TONES[t.tone].tint}`} />
+            {t.icon && <div className="relative shrink-0">{t.icon}</div>}
+            <div className="relative">
               <p className="font-extrabold">{t.title}</p>
               {t.body && <p className="text-sm font-semibold opacity-80">{t.body}</p>}
             </div>

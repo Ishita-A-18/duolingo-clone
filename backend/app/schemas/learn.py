@@ -22,6 +22,7 @@ class SkillOut(BaseModel):
     total_lessons: int
     crowns: int
     max_crowns: int
+    legendary: bool  # passed the skill's Legendary challenge
 
 
 class ChestOut(BaseModel):
@@ -42,10 +43,19 @@ class UnitOut(BaseModel):
     chest: ChestOut
 
 
+class LegendaryRulesOut(BaseModel):
+    gem_cost: int
+    xp: int
+    questions: int
+    seconds: int
+    mistakes_allowed: int
+
+
 class PathOut(BaseModel):
     course_id: int
     course_title: str
     units: list[UnitOut]
+    legendary: LegendaryRulesOut
 
 
 # ---------------------------------------------------------------- sessions
@@ -81,13 +91,13 @@ class ChestClaimOut(BaseModel):
 
 
 class StartSessionIn(BaseModel):
-    mode: Literal["skill", "heart_practice"] = "skill"
+    mode: Literal["skill", "heart_practice", "legendary"] = "skill"
     skill_id: int | None = None
 
     @model_validator(mode="after")
     def _needs_skill(self):
-        if self.mode == "skill" and self.skill_id is None:
-            raise ValueError("skill_id is required for skill sessions")
+        if self.mode != "heart_practice" and self.skill_id is None:
+            raise ValueError("skill_id is required for skill and legendary sessions")
         return self
 
 
@@ -99,6 +109,9 @@ class SessionOut(BaseModel):
     lesson_position: int | None
     total_lessons: int | None
     hearts_at_risk: bool
+    # Timed sessions (legendary) only; null otherwise.
+    time_limit_seconds: int | None = None
+    mistakes_allowed: int | None = None
     exercises: list[ExerciseOut]
 
 
@@ -116,6 +129,7 @@ class AnswerOut(BaseModel):
     note: str | None
     hearts: int
     next_heart_at: datetime | None
+    challenge_failed: bool = False  # legendary: too many mistakes, session is over
 
 
 class StreakOut(BaseModel):
@@ -146,6 +160,7 @@ class CompletionOut(BaseModel):
     crowns: int
     unit_completed_now: bool
     heart_gained: bool
+    legendary_now: bool
     gems_earned: int
     gems: int
     hearts: int

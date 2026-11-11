@@ -37,6 +37,13 @@ class Settings(BaseSettings):
     # Leagues open after this many completed lessons (new learners see a teaser).
     league_unlock_lessons: int = 10  # matches the original ("completing 10 lessons")
 
+    # Legendary challenge (timed, on a completed skill)
+    legendary_gem_cost: int = 100
+    legendary_xp: int = 40
+    legendary_questions: int = 10
+    legendary_seconds: int = 180
+    legendary_mistakes_allowed: int = 2  # the next mistake fails the challenge
+
     # Gem rewards
     unit_chest_gems: int = 15
     daily_goal_gems: int = 5

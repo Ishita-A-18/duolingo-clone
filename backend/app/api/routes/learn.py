@@ -37,11 +37,13 @@ def claim_chest(unit_id: int, db: DB, user: CurrentUser, clock: CurrentClock):
     "/sessions",
     response_model=SessionOut,
     status_code=status.HTTP_201_CREATED,
-    summary="Start a lesson (next lesson of a skill, a review, or heart practice)",
+    summary="Start a lesson (next lesson of a skill, a review, heart practice, or a Legendary challenge)",
 )
 def start_session(body: StartSessionIn, db: DB, user: CurrentUser, clock: CurrentClock):
     if body.mode == "heart_practice":
         s = sessions.start_heart_practice(db, user, clock)
+    elif body.mode == "legendary":
+        s = sessions.start_legendary(db, user, body.skill_id, clock)
     else:
         s = sessions.start_skill_session(db, user, body.skill_id, clock)
     return ser.session_out(s, sessions.dealt_exercises(db, s))
@@ -62,6 +64,7 @@ def submit_answer(session_id: str, body: AnswerIn, db: DB, user: CurrentUser, cl
         note=outcome.result.note,
         hearts=outcome.hearts,
         next_heart_at=outcome.next_heart_at,
+        challenge_failed=outcome.challenge_failed,
     )
 
 

@@ -63,6 +63,7 @@ export const api = {
 
   startSkill: (skillId: number) => post<LessonSession>("/sessions", { mode: "skill", skill_id: skillId }),
   startHeartPractice: () => post<LessonSession>("/sessions", { mode: "heart_practice" }),
+  startLegendary: (skillId: number) => post<LessonSession>("/sessions", { mode: "legendary", skill_id: skillId }),
   answer: (sessionId: string, exerciseId: number, answer: Answer) =>
     post<AnswerResult>(`/sessions/${sessionId}/answers`, { exercise_id: exerciseId, ...answer }),
   complete: (sessionId: string) => post<Completion>(`/sessions/${sessionId}/complete`),

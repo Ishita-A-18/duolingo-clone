@@ -68,6 +68,7 @@ export function LearningPath({ path }: { path: Path }) {
         <UnitSection
           key={unit.id}
           unit={unit}
+          legendaryXp={path.legendary.xp}
           flip={u % 2 === 1}
           openKey={openKey}
           setOpenKey={setOpenKey}
@@ -87,8 +88,9 @@ export function LearningPath({ path }: { path: Path }) {
   );
 }
 
-function UnitSection({ unit, flip, openKey, setOpenKey, activeRef }: {
+function UnitSection({ unit, legendaryXp, flip, openKey, setOpenKey, activeRef }: {
   unit: Unit;
+  legendaryXp: number;
   flip: boolean;
   openKey: string | null;
   setOpenKey: (k: string | null) => void;
@@ -138,6 +140,11 @@ function UnitSection({ unit, flip, openKey, setOpenKey, activeRef }: {
                 title={copy.title}
                 body={copy.body}
                 action={copy.label ? { href: `/lesson/${item.skill.id}`, label: copy.label, onClick: () => setOpenKey(null) } : undefined}
+                legendary={
+                  item.skill.state === "completed"
+                    ? { href: `/legendary/${item.skill.id}`, label: `Legendary +${legendaryXp} XP`, onClick: () => setOpenKey(null) }
+                    : undefined
+                }
               />
             )}
           </>

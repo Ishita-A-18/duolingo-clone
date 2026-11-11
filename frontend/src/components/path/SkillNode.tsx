@@ -4,7 +4,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import type { UnitTheme } from "@/lib/theme";
 import type { Skill } from "@/lib/types";
-import { CheckIcon, CrownIcon, DumbbellIcon, StarIcon } from "../icons";
+import { CheckIcon, CrownIcon, DumbbellIcon, StarIcon, TrophyIcon } from "../icons";
 
 const NODE_W = 70;
 const NODE_H = 62;
@@ -34,8 +34,9 @@ function ProgressRing({ value, color }: { value: number; color: string }) {
 }
 
 /** The pressable 3D circle shared by lesson and practice nodes. */
-function CircleNode({ locked, theme, icon, label, open, onToggle, children }: {
+function CircleNode({ locked, gold, theme, icon, label, open, onToggle, children }: {
   locked: boolean;
+  gold?: boolean; // legendary skill
   theme: UnitTheme;
   icon: ReactNode;
   label: string;
@@ -43,8 +44,8 @@ function CircleNode({ locked, theme, icon, label, open, onToggle, children }: {
   onToggle: () => void;
   children?: ReactNode; // ring, bubble, badges
 }) {
-  const fill = locked ? "var(--color-locked)" : theme.main;
-  const edge = locked ? "var(--color-locked-dark)" : theme.dark;
+  const fill = locked ? "var(--color-locked)" : gold ? "var(--color-gold)" : theme.main;
+  const edge = locked ? "var(--color-locked-dark)" : gold ? "var(--color-gold-dark)" : theme.dark;
   return (
     <div className="relative" style={{ width: NODE_BOX, height: NODE_BOX }}>
       {children}
@@ -76,9 +77,11 @@ export function SkillNode({ skill, theme, open, onToggle }: {
   return (
     <CircleNode
       locked={state === "locked"}
+      gold={skill.legendary}
       theme={theme}
-      // Locked levels show the level's own icon greyed out, like the original.
-      icon={state === "completed" ? <CheckIcon size={34} /> : <StarIcon size={34} />}
+      // Locked levels show the level's own icon greyed out, like the original;
+      // legendary skills turn gold with a trophy.
+      icon={skill.legendary ? <TrophyIcon size={34} /> : state === "completed" ? <CheckIcon size={34} /> : <StarIcon size={34} />}
       label={`${skill.title} (${state})`}
       open={open}
       onToggle={onToggle}
@@ -125,12 +128,14 @@ export function PracticeNode({ locked, theme, open, onToggle }: {
 }
 
 /** Popover under a node. Locked popovers are grey with a disabled button. */
-export function NodePopover({ theme, locked, title, body, action }: {
+export function NodePopover({ theme, locked, title, body, action, legendary }: {
   theme: UnitTheme;
   locked: boolean;
   title: string;
   body: string;
   action?: { href: string; label: string; onClick?: () => void };
+  /** Completed skills: link to the Legendary challenge. */
+  legendary?: { href: string; label: string; onClick?: () => void };
 }) {
   const bg = locked ? "var(--bg-soft)" : theme.main;
   const border = locked ? "2px solid var(--line)" : "none";
@@ -153,6 +158,11 @@ export function NodePopover({ theme, locked, title, body, action }: {
           {action.label}
         </Link>
       )}
+      {!locked && legendary && (
+        <Link href={legendary.href} onClick={legendary.onClick} className="btn btn-gold mt-3 w-full">
+          <TrophyIcon size={20} /> {legendary.label}
+        </Link>
+      )}
     </div>
   );
 }
@@ -162,7 +172,9 @@ export function skillPopoverCopy(skill: Skill) {
   if (skill.state === "completed")
     return {
       title: skill.title,
-      body: `Crown level ${skill.crowns} of ${skill.max_crowns}. Review to level up!`,
+      body: skill.legendary
+        ? "Legendary! You've mastered this skill."
+        : `Crown level ${skill.crowns} of ${skill.max_crowns}. Review to level up!`,
       label: "Practice +5 XP",
     };
   return { title: skill.title, body: `Lesson ${skill.lessons_completed + 1} of ${skill.total_lessons}`, label: "Start +10 XP" };

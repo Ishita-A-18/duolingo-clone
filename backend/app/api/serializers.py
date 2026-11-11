@@ -8,6 +8,7 @@ from app.schemas.learn import (
     ChestOut,
     CompletionOut,
     ExerciseOut,
+    LegendaryRulesOut,
     OptionOut,
     PairOut,
     PathOut,
@@ -122,6 +123,7 @@ def path_out(course, units: list[UnitNode], claimed: set[str]) -> PathOut:
                         total_lessons=n.total_lessons,
                         crowns=n.crowns,
                         max_crowns=sessions.MAX_CROWNS,
+                        legendary=n.legendary,
                     )
                     for n in u.skills
                 ],
@@ -133,6 +135,13 @@ def path_out(course, units: list[UnitNode], claimed: set[str]) -> PathOut:
             )
             for u in units
         ],
+        legendary=LegendaryRulesOut(
+            gem_cost=settings.legendary_gem_cost,
+            xp=settings.legendary_xp,
+            questions=settings.legendary_questions,
+            seconds=settings.legendary_seconds,
+            mistakes_allowed=settings.legendary_mistakes_allowed,
+        ),
     )
 
 
@@ -166,7 +175,9 @@ def session_out(s: LessonSession, exercises: list[Exercise]) -> SessionOut:
         skill_title=skill.title if skill else None,
         lesson_position=lesson.position if lesson else None,
         total_lessons=len(skill.lessons) if skill else None,
-        hearts_at_risk=s.mode != SessionMode.HEART_PRACTICE,
+        hearts_at_risk=s.mode in (SessionMode.LESSON, SessionMode.REVIEW),
+        time_limit_seconds=int((s.deadline - s.started_at).total_seconds()) if s.deadline else None,
+        mistakes_allowed=settings.legendary_mistakes_allowed if s.mode == SessionMode.LEGENDARY else None,
         exercises=[exercise_out(e) for e in dealt],
     )
 
@@ -188,6 +199,7 @@ def completion_out(c: sessions.Completion, user: User) -> CompletionOut:
         crowns=c.crowns,
         unit_completed_now=c.unit_completed_now,
         heart_gained=c.heart_gained,
+        legendary_now=c.legendary_now,
         gems_earned=c.gems_earned,
         gems=user.gems,
         hearts=user.hearts,
