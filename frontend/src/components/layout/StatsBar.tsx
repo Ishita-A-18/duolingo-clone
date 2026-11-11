@@ -45,7 +45,7 @@ function Stat({ trigger, label, children }: { trigger: ReactNode; label: string;
   }, [open]);
 
   return (
-    <div ref={ref} className="relative">
+    <div ref={ref}>
       <button
         aria-label={label}
         onClick={() => setOpen((o) => !o)}
@@ -54,7 +54,7 @@ function Stat({ trigger, label, children }: { trigger: ReactNode; label: string;
         {trigger}
       </button>
       {open && (
-        <div className="absolute right-0 top-full z-40 mt-2 w-[min(340px,calc(100vw-2rem))] animate-pop rounded-2xl border-2 border-line bg-bg p-5 shadow-xl max-md:fixed max-md:left-4 max-md:right-4 max-md:top-16 max-md:w-auto">
+        <div className="absolute inset-x-0 top-full z-40 mt-2 animate-pop rounded-2xl border-2 border-line bg-bg p-5 shadow-xl max-md:fixed max-md:left-4 max-md:right-4 max-md:top-16">
           {children}
         </div>
       )}
@@ -78,8 +78,9 @@ export function StatsBar() {
   };
   const full = me.hearts >= me.max_hearts;
 
+  // `relative` here: each stat's dropdown anchors to the full bar width.
   return (
-    <div className="flex items-center justify-between gap-1">
+    <div className="relative flex items-center justify-between gap-1">
       <Stat label="Course" trigger={<SpainFlag size={32} />}>
         <p className="mb-3 text-sm font-extrabold uppercase tracking-wider text-ink-muted">My courses</p>
         <div className="flex items-center gap-3 rounded-xl border-2 border-blue-border bg-blue-light p-3">
