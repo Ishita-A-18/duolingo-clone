@@ -1,0 +1,20 @@
+# Render Blueprint for the backend API (https://render.com/docs/blueprint-spec).
+# New -> Blueprint -> pick this repo, and Render reads these settings.
+services:
+  - type: web
+    name: lingo-api
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      # Lets any Vercel deployment of the frontend call the API (CORS).
+      - key: CORS_ORIGIN_REGEX
+        value: https://.*\.vercel\.app
+      # Keep the simulated clock + reset tools so reviewers can test streaks.
+      - key: ENABLE_DEV_TOOLS
+        value: "true"

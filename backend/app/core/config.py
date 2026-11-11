@@ -15,6 +15,9 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///./duolingo.db"
     # Comma separated list of allowed frontend origins.
     cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
+    # Optional regex for hosted frontends, e.g. "https://.*\.vercel\.app" so
+    # every Vercel deployment (production and previews) can call the API.
+    cors_origin_regex: str | None = None
 
     # The "logged in" learner. Auth is simplified per the assignment.
     default_username: str = "alex"

@@ -247,4 +247,29 @@ All code was written for this project. Nothing is copied from existing clone rep
 
 ## Deployment
 
-_Coming next: backend on Render (or Railway), frontend on Vercel with `NEXT_PUBLIC_API_URL` pointing at the API and `CORS_ORIGINS` set to the Vercel URL._
+| Part | Host | URL |
+|---|---|---|
+| Frontend | Vercel | _added after first deploy_ |
+| Backend API | Render (free) | _added after first deploy_ (docs at `/docs`) |
+
+**Backend (Render).** The repo includes a Blueprint, [`render.yaml`](render.yaml): in Render choose **New → Blueprint**, pick this repository, and it creates the `lingo-api` web service with the settings below.
+
+| Setting | Value |
+|---|---|
+| Root directory | `backend` |
+| Build command | `pip install -r requirements.txt` |
+| Start command | `uvicorn app.main:app --host 0.0.0.0 --port $PORT` |
+| Health check | `/api/health` |
+| `PYTHON_VERSION` | `3.11.9` |
+| `CORS_ORIGIN_REGEX` | `https://.*\.vercel\.app` (lets any Vercel deployment call the API) |
+| `ENABLE_DEV_TOOLS` | `true` (keeps "Simulate next day" for reviewers) |
+
+**Frontend (Vercel).** Import the repository, set **Root Directory** to `frontend` (framework: Next.js, detected automatically) and add one environment variable:
+
+| Variable | Value |
+|---|---|
+| `NEXT_PUBLIC_API_URL` | the Render URL, e.g. `https://lingo-api.onrender.com` (no trailing slash) |
+
+**Free-tier behaviour (by design, see Assumptions):**
+- The Render free instance **sleeps after ~15 minutes idle**, so the first request after that takes up to a minute while it wakes.
+- Its disk is **ephemeral**, so the SQLite database is re-created and **re-seeded** whenever the instance restarts or redeploys. The demo always starts usable; progress lasts as long as the instance stays up.
