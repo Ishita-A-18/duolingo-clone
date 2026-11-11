@@ -1,0 +1,276 @@
+@import "tailwindcss";
+
+/*
+ * Design tokens.
+ *
+ * Brand colors mirror the palette of the original app (bright green primary,
+ * blue secondary, red errors, orange streaks, gold rewards). Each color has a
+ * "dark" shade used for the chunky 3D bottom edge of buttons and a "light"
+ * tint used for selected / feedback backgrounds.
+ *
+ * Every color is a CSS variable, so the dark theme only redefines values:
+ *   - light: the default
+ *   - dark:  follows the OS setting, or forced with <html data-theme="dark">
+ *   - <html data-theme="light"> forces light even on a dark OS
+ * The dark palette follows the original's dark mode: near-black slate
+ * surfaces, a lighter lime primary with dark text on colored buttons, and
+ * neutral slate feedback bars.
+ */
+:root {
+  color-scheme: light;
+  --bg: #ffffff;
+  --bg-soft: #f7f7f7;
+  --text: #4b4b4b;
+  --text-strong: #3c3c3c;
+  --text-muted: #777777;
+  --line: #e5e5e5;
+  --line-strong: #cecece;
+
+  --green: #58cc02;
+  --green-dark: #58a700;
+  --green-light: #d7ffb8;
+  --blue: #1cb0f6;
+  --blue-dark: #1899d6;
+  --blue-light: #ddf4ff;
+  --blue-border: #84d8ff;
+  --red: #ff4b4b;
+  --red-dark: #ea2b2b;
+  --red-light: #ffdfe0;
+  --orange-light: #fff0d9;
+  --gold-light: #fff6d4;
+  --purple-light: #f4e6ff;
+  --gray: #afafaf;
+  --locked: #e5e5e5;
+  --locked-dark: #b7b7b7;
+  --locked-icon: #b7b7b7;
+
+  --on-color: #ffffff; /* text on colored buttons */
+  --feedback-ok-bg: #d7ffb8;
+  --feedback-bad-bg: #ffdfe0;
+  --feedback-icon-bg: #ffffff;
+  --icon-muted: #e5e5e5;
+  --icon-muted-2: #cecece;
+  --nav-text: #777777;
+}
+
+/* Same values twice: once for the OS preference, once for the explicit toggle. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #131f24; --bg-soft: #202f36;
+    --text: #dce6ec; --text-strong: #f1f7fb; --text-muted: #8fa3ad;
+    --line: #37464f; --line-strong: #52656d;
+    --green: #93d333; --green-dark: #79b933; --green-light: rgba(147, 211, 51, 0.14);
+    --blue: #49c0f8; --blue-dark: #1899d6; --blue-light: #202f36; --blue-border: #3f85a7;
+    --red: #ff4b4b; --red-dark: #ea2b2b; --red-light: rgba(255, 75, 75, 0.14);
+    --orange-light: rgba(255, 150, 0, 0.14); --gold-light: rgba(255, 200, 0, 0.14);
+    --purple-light: rgba(206, 130, 255, 0.16);
+    --gray: #6f8791; --locked: #37464f; --locked-dark: #27353b; --locked-icon: #52656d;
+    --on-color: #131f24;
+    --feedback-ok-bg: #202f36; --feedback-bad-bg: #202f36; --feedback-icon-bg: #131f24;
+    --icon-muted: #37464f; --icon-muted-2: #52656d;
+    --nav-text: #f1f7fb;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #131f24; --bg-soft: #202f36;
+  --text: #dce6ec; --text-strong: #f1f7fb; --text-muted: #8fa3ad;
+  --line: #37464f; --line-strong: #52656d;
+  --green: #93d333; --green-dark: #79b933; --green-light: rgba(147, 211, 51, 0.14);
+  --blue: #49c0f8; --blue-dark: #1899d6; --blue-light: #202f36; --blue-border: #3f85a7;
+  --red: #ff4b4b; --red-dark: #ea2b2b; --red-light: rgba(255, 75, 75, 0.14);
+  --orange-light: rgba(255, 150, 0, 0.14); --gold-light: rgba(255, 200, 0, 0.14);
+  --purple-light: rgba(206, 130, 255, 0.16);
+  --gray: #6f8791; --locked: #37464f; --locked-dark: #27353b; --locked-icon: #52656d;
+  --on-color: #131f24;
+  --feedback-ok-bg: #202f36; --feedback-bad-bg: #202f36; --feedback-icon-bg: #131f24;
+  --icon-muted: #37464f; --icon-muted-2: #52656d;
+  --nav-text: #f1f7fb;
+}
+
+@theme inline {
+  --font-sans: var(--font-nunito), ui-rounded, system-ui, sans-serif;
+
+  --color-bg: var(--bg);
+  --color-bg-soft: var(--bg-soft);
+  --color-ink: var(--text);
+  --color-ink-strong: var(--text-strong);
+  --color-ink-muted: var(--text-muted);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+
+  --color-green: var(--green);
+  --color-green-dark: var(--green-dark);
+  --color-green-light: var(--green-light);
+  --color-green-text: var(--green-dark);
+
+  --color-blue: var(--blue);
+  --color-blue-dark: var(--blue-dark);
+  --color-blue-light: var(--blue-light);
+  --color-blue-border: var(--blue-border);
+
+  --color-red: var(--red);
+  --color-red-dark: var(--red-dark);
+  --color-red-light: var(--red-light);
+
+  --color-orange: #ff9600;
+  --color-orange-dark: #e08600;
+  --color-orange-light: var(--orange-light);
+
+  --color-gold: #ffc800;
+  --color-gold-dark: #e5a800;
+  --color-gold-light: var(--gold-light);
+
+  --color-purple: #ce82ff;
+  --color-purple-dark: #a568cc;
+  --color-purple-light: var(--purple-light);
+
+  --color-gray: var(--gray);
+  --color-gray-dark: #8e8e8e;
+  --color-locked: var(--locked);
+  --color-locked-dark: var(--locked-dark);
+  --color-locked-icon: var(--locked-icon);
+
+  --animate-pop: pop 0.25s ease-out;
+  --animate-shake: shake 0.35s ease-in-out;
+  --animate-bounce-soft: bounce-soft 1.6s ease-in-out infinite;
+  --animate-bounce-chest: bounce-chest 1.8s ease-in-out infinite;
+  --animate-slide-up: slide-up 0.22s ease-out;
+  --animate-fade-in: fade-in 0.2s ease-out;
+}
+
+@keyframes pop {
+  0% { transform: scale(0.85); opacity: 0; }
+  70% { transform: scale(1.05); opacity: 1; }
+  100% { transform: scale(1); }
+}
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-6px); }
+  40%, 80% { transform: translateX(6px); }
+}
+@keyframes bounce-soft {
+  0%, 100% { transform: translate(-50%, 0); }
+  50% { transform: translate(-50%, -6px); }
+}
+@keyframes bounce-chest {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+@keyframes slide-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+html, body {
+  background: var(--bg);
+  color: var(--text);
+}
+body {
+  font-family: var(--font-sans);
+  -webkit-tap-highlight-color: transparent;
+}
+
+/*
+ * The signature chunky button: a solid bottom "edge" drawn with box-shadow
+ * that disappears while pressed, so the button appears to sink.
+ * Variants set --btn-bg / --btn-edge / --btn-fg.
+ */
+@layer components {
+  .btn {
+    --btn-bg: var(--color-green);
+    --btn-edge: var(--color-green-dark);
+    --btn-fg: var(--on-color);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 48px;
+    padding: 0 1.25rem;
+    border-radius: 16px;
+    background: var(--btn-bg);
+    color: var(--btn-fg);
+    box-shadow: 0 4px 0 var(--btn-edge);
+    font-weight: 800;
+    font-size: 15px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    transition: filter 0.1s, transform 0.05s, box-shadow 0.05s;
+    user-select: none;
+  }
+  .btn:hover:not(:disabled) { filter: brightness(1.06); }
+  .btn:active:not(:disabled) {
+    transform: translateY(4px);
+    box-shadow: 0 0 0 var(--btn-edge);
+  }
+  .btn:disabled {
+    --btn-bg: var(--color-locked);
+    --btn-edge: var(--color-locked);
+    --btn-fg: var(--color-gray);
+    cursor: default;
+  }
+  .btn-blue { --btn-bg: var(--color-blue); --btn-edge: var(--color-blue-dark); }
+  .btn-red { --btn-bg: var(--color-red); --btn-edge: var(--color-red-dark); }
+  .btn-gold { --btn-bg: var(--color-gold); --btn-edge: var(--color-gold-dark); }
+  .btn-purple { --btn-bg: var(--color-purple); --btn-edge: var(--color-purple-dark); }
+  .btn-white { --btn-bg: #fff; --btn-edge: var(--line); --btn-fg: var(--color-blue); }
+  .btn-outline {
+    --btn-bg: var(--bg);
+    --btn-edge: var(--line);
+    --btn-fg: var(--text-muted);
+    border: 2px solid var(--line);
+  }
+  .btn-ghost {
+    --btn-bg: transparent;
+    --btn-edge: transparent;
+    --btn-fg: var(--color-blue);
+  }
+
+  /* Bordered card / option tile with the same 3D edge. */
+  .tile {
+    border: 2px solid var(--line);
+    border-bottom-width: 4px;
+    border-radius: 16px;
+    background: var(--bg);
+    transition: background 0.1s, border-color 0.1s, transform 0.05s;
+  }
+  .tile:hover:not(:disabled) { background: var(--bg-soft); }
+  .tile:active:not(:disabled) { transform: translateY(2px); border-bottom-width: 2px; }
+  .tile[data-state="selected"] {
+    border-color: var(--color-blue-border);
+    background: var(--color-blue-light);
+    color: var(--color-blue-dark);
+  }
+  .tile[data-state="correct"] {
+    border-color: var(--color-green);
+    background: var(--color-green-light);
+    color: var(--color-green-dark);
+  }
+  .tile[data-state="wrong"] {
+    border-color: var(--color-red);
+    background: var(--color-red-light);
+    color: var(--color-red-dark);
+  }
+  .tile[data-state="done"] {
+    border-color: var(--line);
+    background: var(--bg);
+    color: var(--line);
+    cursor: default;
+  }
+}
+
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { scrollbar-width: none; }
+
+/* Settings -> Animations off: stop keyframe animations and transitions everywhere. */
+:root[data-animations="off"] *,
+:root[data-animations="off"] *::before,
+:root[data-animations="off"] *::after {
+  animation: none !important;
+  transition: none !important;
+}
