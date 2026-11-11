@@ -194,6 +194,7 @@ Errors always look like `{"error": {"code": "out_of_hearts", "message": "..."}}`
 
 | Method | Path | Description |
 |---|---|---|
+| GET | `/health` | Liveness check, used by Render's health check → `{"status": "ok"}` |
 | GET | `/me` | Top-bar stats: hearts (+ seconds to next), gems, streak + week, XP, daily goal |
 | PATCH | `/me` | Update `display_name`, `daily_goal_xp`, `timezone`, and the lesson preferences (`sound_enabled`, `animations_enabled`, `motivational_messages`, `listening_enabled`) |
 | POST | `/me/hearts/refill` | Refill hearts for gems, or `{"free": true}` for the one-time free refill (`409 hearts_full / not_enough_gems / free_refill_used`) |
