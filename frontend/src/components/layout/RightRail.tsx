@@ -160,7 +160,8 @@ function LeaderboardInfoCard() {
 function LeagueCard() {
   const { data } = useLeaderboard();
   const me = data?.standings.find((s) => s.is_me);
-  if (data && !data.unlocked) {
+  if (!data) return null; // still loading: don't show a misleading placeholder
+  if (!data.unlocked) {
     return (
       <Card>
         <h3 className="text-xl font-extrabold text-ink-strong">Unlock Leaderboards!</h3>
