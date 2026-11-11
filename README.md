@@ -1,5 +1,9 @@
 # lingo: a Duolingo-style language app
 
+**Live demo:** https://duolingo-clone-kappa-virid.vercel.app &nbsp;·&nbsp; **API docs:** https://lingo-api-f305.onrender.com/docs
+
+> The API runs on Render's free tier and sleeps when idle, so the first load can take up to a minute.
+
 A full-stack recreation of Duolingo's learning experience: a snaking learning path, a lesson player with five exercise types and the signature feedback bar, hearts, XP, streaks, daily goals, a weekly league and achievements. Everything persists per learner in SQLite.
 
 > The layout, interactions and palette follow the original app. The name, wordmark and mascot ("Pip") are original, to avoid reusing trademarked assets. See [D1](docs/DESIGN_DECISIONS.md#d1-copy-the-layout-palette-and-ux-but-not-the-brand-assets).
@@ -249,8 +253,8 @@ All code was written for this project. Nothing is copied from existing clone rep
 
 | Part | Host | URL |
 |---|---|---|
-| Frontend | Vercel | _added after first deploy_ |
-| Backend API | Render (free) | _added after first deploy_ (docs at `/docs`) |
+| Frontend | Vercel | **https://duolingo-clone-kappa-virid.vercel.app** |
+| Backend API | Render (free) | https://lingo-api-f305.onrender.com (interactive docs: [`/docs`](https://lingo-api-f305.onrender.com/docs)) |
 
 **Backend (Render).** The repo includes a Blueprint, [`render.yaml`](render.yaml): in Render choose **New → Blueprint**, pick this repository, and it creates the `lingo-api` web service with the settings below.
 
